@@ -6,6 +6,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import {rinkebyId, rinkebyAccountAddress} from './config'
 
 dotenv.config();
 
@@ -29,8 +30,8 @@ const config: HardhatUserConfig = {
       chainId: 1337
     },
     rinkeby:{
-      url:`https://rinkeby.infura.io/v3/${process.env.PROJECTID}`,
-      accounts:process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      url:`https://rinkeby.infura.io/v3/${rinkebyId}`,
+      accounts:[rinkebyAccountAddress],
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",

@@ -4,11 +4,14 @@ import type { NextPage } from 'next'
 import styles from '../styles/Home.module.css'
 import axios from 'axios'
 import Web3Modal from 'web3modal'
-import NFT from '../artifacts/contracts/NFT.sol/NFT.json'
+import NFTContract from '../artifacts/contracts/NFT.sol/NFT.json'
 import Market from '../artifacts/contracts/NFTMarket.sol/NFTMarket.json'
 import * as dotenv from "dotenv";
+import { nftaddress, nftmarketaddress,rinkebyApiKey,rinkebyId } from '../config'
+import { NFTMarket } from '../typechain/NFTMarket'
+import { NFT } from '../typechain/NFT'
 
-dotenv.config({ path: `${__dirname}/../../../../.env` });
+
 
 const Home: NextPage = () => {
   const [nfts, setNFts] = useState([])
@@ -18,10 +21,11 @@ const Home: NextPage = () => {
   },[])
 
   const loadNFTs = async() => {
-    const provider = new ethers.providers.JsonRpcProvider()
-    console.log(process.env.NFT_ADDRESS)
-    const tokenContract = new ethers.Contract(process.env.NFT_ADDRESS, NFT.abi, provider)
-    const marketContract = new ethers.Contract(process.env.NFT_MARKET_ADDRESS, Market.abi, provider)
+    //const provider = new ethers.providers.JsonRpcProvider('https://mainnet.infura.io/6c493c0e906c44cba79597ca3220c865')
+    const provider = new ethers.providers.InfuraProvider("rinkeby",rinkebyId)
+    console.log(nftaddress)
+    const tokenContract = new ethers.Contract(nftaddress, NFTContract.abi, provider) as NFT
+    const marketContract = new ethers.Contract(nftmarketaddress, Market.abi, provider) as NFTMarket
     const data = await marketContract.fetchMarketItems()
     const items = await Promise.all(data.map(async i => {
       const tokenUri = await tokenContract.tokenURI(i.tokenId)
@@ -29,7 +33,7 @@ const Home: NextPage = () => {
       let price = ethers.utils.formatUnits(i.price.toString(), 'ether')
       let item = {
         price,
-        tokenId: i.tokenId.toNumber(),
+        itemId: i.itemId.toNumber(),
         seller: i.seller,
         owner: i.owner,
         image: meta.data.image,
@@ -49,15 +53,13 @@ const Home: NextPage = () => {
     const provider = new ethers.providers.Web3Provider(connection)
 
     const signer = provider.getSigner()
-
-
-    const contract = new ethers.Contract(process.env.NFT_ADDRESS,NFT.abi,signer)
-    // const marketContract = new ethers.Contract(process.env.NFT_MARKET_ADDRESS, Market.abi,signer)
-    // const data = await marketContract.buyNft(nft.tokenId,nft.price)
+    const contract = new ethers.Contract(nftmarketaddress, Market.abi, signer) as NFTMarket
     const price = ethers.utils.parseUnits(nft.price.toString(), 'ether')
-    const transaction = await contract.createMarketSale(process.env.NFT_ADDRESS, nft.tokenId,{value:price})
+    const transaction = await contract.createMarketSale(nftaddress,nft.itemId,{
+      value: price
+    })
     await transaction.wait()
-    loadNFTs() 
+    loadNFTs()
   }
 
   if(loadingState === 'loaded' && !nfts.length) return (<h1 className="px-20 py-10 text-3xl">No items in marketplace</h1>)
